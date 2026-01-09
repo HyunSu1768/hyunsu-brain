@@ -42,7 +42,7 @@ class SchematicController(
                 val normalizedPrices = comparisonService.normalize(resampledPrices)
                 val mse = comparisonService.calculateMSE(normalizedUserPoints, normalizedPrices)
                 
-                TickerResult(symbol, 1.0 - mse, prices)
+                TickerResult(symbol, 1.0 - mse, resampledPrices)
             } catch (e: Exception) {
                 null
             }
