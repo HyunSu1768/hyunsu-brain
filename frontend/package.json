@@ -13,11 +13,13 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "vibe-kanban-web-companion": "^0.0.5"
+    "styled-components": "^6.2.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/styled-components": "^5.1.36",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
