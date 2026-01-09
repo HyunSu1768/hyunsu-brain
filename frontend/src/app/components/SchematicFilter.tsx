@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/Button';
+import TradingViewChart, { Kline } from './TradingViewChart';
 
 const Container = styled.div`
   display: flex;
@@ -29,7 +30,7 @@ const Svg = styled.svg`
 
 const ResultGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
 `;
 
@@ -38,17 +39,21 @@ const ResultCard = styled.div`
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
 
-const MiniChart = styled.svg`
-  width: 100%;
-  height: 80px;
-  margin-top: 8px;
-`;
+interface MatchResult {
+  symbol: string;
+  score: number;
+  prices: Kline[];
+}
 
 export const SchematicFilter = () => {
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<MatchResult[]>([]);
+  const [userPattern, setUserPattern] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [interval, setInterval] = useState('1h');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +64,6 @@ export const SchematicFilter = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Sort points by x to keep it a time series
     const newPoints = [...points, { x, y }].sort((a, b) => a.x - b.x);
     setPoints(newPoints);
   };
@@ -67,17 +71,14 @@ export const SchematicFilter = () => {
   const clearPoints = () => {
     setPoints([]);
     setResults([]);
+    setUserPattern([]);
   };
 
   const findMatches = async () => {
     if (points.length < 2) return;
     setLoading(true);
     
-    // Convert points to simple Y values, sampled at regular X intervals
-    // Actually, we can just send the Y values of our clicked points if they are sorted by X
-    // But better to resample them to a fixed length on the client or server.
-    // Let's just send the raw Y values for now.
-    const yValues = points.map(p => 300 - p.y); // Invert Y because SVG Y is top-down
+    const yValues = points.map(p => 300 - p.y); // Invert Y for canvas -> chart
 
     try {
       const response = await fetch('/api/schematic/filter', {
@@ -86,7 +87,8 @@ export const SchematicFilter = () => {
         body: JSON.stringify({ points: yValues, interval }),
       });
       const data = await response.json();
-      setResults(data);
+      setResults(data.results);
+      setUserPattern(data.userPattern);
     } catch (error) {
       console.error('Failed to fetch matches', error);
     } finally {
@@ -98,25 +100,6 @@ export const SchematicFilter = () => {
     if (pts.length < 2) return null;
     const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
     return <path d={path} fill="none" stroke="#00ff00" strokeWidth="2" />;
-  };
-
-  const renderMiniChart = (prices: number[]) => {
-    if (prices.length < 2) return null;
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const yRange = maxPrice - minPrice;
-
-    const points = prices.map((price, i) => {
-      const x = (i / (prices.length - 1)) * 180;
-      const y = yRange === 0 ? 40 : 80 - ((price - minPrice) / yRange) * 80;
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    return (
-      <MiniChart viewBox="0 0 180 80">
-        <path d={points} fill="none" stroke="#4dabf7" strokeWidth="1.5" />
-      </MiniChart>
-    );
   };
 
   return (
@@ -163,7 +146,7 @@ export const SchematicFilter = () => {
                   <strong>{res.symbol}</strong>
                   <span style={{ color: '#888', fontSize: '0.8rem' }}>{(res.score * 100).toFixed(1)}%</span>
                 </div>
-                {renderMiniChart(res.prices)}
+                <TradingViewChart data={res.prices} userPattern={userPattern} />
               </ResultCard>
             ))}
           </ResultGrid>

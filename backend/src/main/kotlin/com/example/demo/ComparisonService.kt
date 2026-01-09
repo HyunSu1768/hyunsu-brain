@@ -5,7 +5,7 @@ import kotlin.math.pow
 
 data class MatchResult(
     val score: Double,
-    val matchedSubsequence: List<Double>
+    val matchedSubsequence: List<Kline>
 )
 
 @Service
@@ -44,7 +44,7 @@ class ComparisonService {
         return resampled
     }
 
-    fun findBestMatch(userPattern: List<Double>, priceHistory: List<Double>): MatchResult? {
+    fun findBestMatch(userPattern: List<Double>, priceHistory: List<Kline>, maxLookback: Int? = null): MatchResult? {
         val userLength = userPattern.size
         val historyLength = priceHistory.size
 
@@ -53,18 +53,27 @@ class ComparisonService {
         }
 
         val normalizedUserPattern = normalize(userPattern)
-        var minMse = Double.MAX_VALUE
-        var bestMatchSubsequence: List<Double>? = null
+        val priceHistoryCloses = priceHistory.map { it.close }
 
-        // Iterate backwards to find the most recent best match
-        for (i in historyLength - userLength downTo 0) {
-            val subsequence = priceHistory.subList(i, i + userLength)
-            val normalizedSubsequence = normalize(subsequence)
+        var minMse = Double.MAX_VALUE
+        var bestMatchSubsequence: List<Kline>? = null
+
+        val startSearchIndex = historyLength - userLength
+        val endSearchIndex = if (maxLookback != null) {
+            Math.max(0, historyLength - userLength - maxLookback)
+        } else {
+            0
+        }
+
+        // Iterate backwards to find the most recent best match within the lookback period
+        for (i in startSearchIndex downTo endSearchIndex) {
+            val subsequenceCloses = priceHistoryCloses.subList(i, i + userLength)
+            val normalizedSubsequence = normalize(subsequenceCloses)
             val mse = calculateMSE(normalizedUserPattern, normalizedSubsequence)
 
             if (mse < minMse) {
                 minMse = mse
-                bestMatchSubsequence = subsequence
+                bestMatchSubsequence = priceHistory.subList(i, i + userLength)
             }
         }
 

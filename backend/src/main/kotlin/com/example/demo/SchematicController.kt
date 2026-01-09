@@ -11,7 +11,12 @@ data class SchematicFilterRequest(
 data class TickerResult(
     val symbol: String,
     val score: Double,
-    val prices: List<Double>
+    val prices: List<Kline>
+)
+
+data class SchematicFilterResponse(
+    val results: List<TickerResult>,
+    val userPattern: List<Double>
 )
 
 @RestController
@@ -22,14 +27,24 @@ class SchematicController(
 ) {
 
     @PostMapping("/filter")
-    fun filterTickers(@RequestBody request: SchematicFilterRequest): List<TickerResult> {
+    fun filterTickers(@RequestBody request: SchematicFilterRequest): SchematicFilterResponse {
         val userPatternLength = 100 // The length we resample the user's drawing to
         val historyLength = 500     // The total price history to search within
 
-        if (request.points.size < 2) return emptyList()
+        if (request.points.size < 2) return SchematicFilterResponse(emptyList(), emptyList())
+
+        // Calculate how many candles represent 24 hours for the given interval
+        val candlesIn24Hours = when (request.interval) {
+            "15m" -> 96
+            "1h" -> 24
+            "4h" -> 6
+            "1d" -> 1
+            else -> 24
+        }
 
         // Resample the user's drawing to a consistent length
         val userPattern = comparisonService.resample(request.points, userPatternLength)
+        val normalizedUserPattern = comparisonService.normalize(userPattern)
 
         val topTickers = binanceService.getTopPerpTickers()
         
@@ -40,7 +55,8 @@ class SchematicController(
                 if (priceHistory.size < userPatternLength) return@map null
 
                 // Find the best match for the user's pattern in the ticker's history
-                val matchResult = comparisonService.findBestMatch(userPattern, priceHistory)
+                // We restrict the match to end within the last 24 hours
+                val matchResult = comparisonService.findBestMatch(userPattern, priceHistory, candlesIn24Hours)
                 
                 if (matchResult != null) {
                     TickerResult(symbol, matchResult.score, matchResult.matchedSubsequence)
@@ -53,6 +69,7 @@ class SchematicController(
             }
         }.filter { it != null }.collect(Collectors.toList())
 
-        return results.filterNotNull().sortedByDescending { it.score }.take(10)
+        val sortedResults = results.filterNotNull().sortedByDescending { it.score }.take(10)
+        return SchematicFilterResponse(sortedResults, normalizedUserPattern)
     }
 }
