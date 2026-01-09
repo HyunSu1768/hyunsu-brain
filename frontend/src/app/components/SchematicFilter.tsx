@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/Button';
 
@@ -46,9 +46,18 @@ const MiniChart = styled.svg`
   margin-top: 8px;
 `;
 
+const normalize = (data: number[]): number[] => {
+  if (data.length === 0) return [];
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  if (max === min) return data.map(() => 0.5);
+  return data.map(d => (d - min) / (max - min));
+};
+
 export const SchematicFilter = () => {
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [userPattern, setUserPattern] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [interval, setInterval] = useState('1h');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +68,6 @@ export const SchematicFilter = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Sort points by x to keep it a time series
     const newPoints = [...points, { x, y }].sort((a, b) => a.x - b.x);
     setPoints(newPoints);
   };
@@ -67,17 +75,14 @@ export const SchematicFilter = () => {
   const clearPoints = () => {
     setPoints([]);
     setResults([]);
+    setUserPattern([]);
   };
 
   const findMatches = async () => {
     if (points.length < 2) return;
     setLoading(true);
     
-    // Convert points to simple Y values, sampled at regular X intervals
-    // Actually, we can just send the Y values of our clicked points if they are sorted by X
-    // But better to resample them to a fixed length on the client or server.
-    // Let's just send the raw Y values for now.
-    const yValues = points.map(p => 300 - p.y); // Invert Y because SVG Y is top-down
+    const yValues = points.map(p => 300 - p.y); // Invert Y for canvas -> chart
 
     try {
       const response = await fetch('/api/schematic/filter', {
@@ -86,7 +91,8 @@ export const SchematicFilter = () => {
         body: JSON.stringify({ points: yValues, interval }),
       });
       const data = await response.json();
-      setResults(data);
+      setResults(data.results);
+      setUserPattern(data.userPattern);
     } catch (error) {
       console.error('Failed to fetch matches', error);
     } finally {
@@ -100,21 +106,27 @@ export const SchematicFilter = () => {
     return <path d={path} fill="none" stroke="#00ff00" strokeWidth="2" />;
   };
 
-  const renderMiniChart = (prices: number[]) => {
+  const renderComparisonChart = (prices: number[], pattern: number[]) => {
     if (prices.length < 2) return null;
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const yRange = maxPrice - minPrice;
 
-    const points = prices.map((price, i) => {
-      const x = (i / (prices.length - 1)) * 180;
-      const y = yRange === 0 ? 40 : 80 - ((price - minPrice) / yRange) * 80;
+    const normalizedPrices = normalize(prices);
+    
+    const pricePath = normalizedPrices.map((price, i) => {
+      const x = (i / (normalizedPrices.length - 1)) * 180;
+      const y = 80 - price * 80;
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+
+    const userPath = pattern.map((price, i) => {
+        const x = (i / (pattern.length - 1)) * 180;
+        const y = 80 - price * 80;
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
 
     return (
       <MiniChart viewBox="0 0 180 80">
-        <path d={points} fill="none" stroke="#4dabf7" strokeWidth="1.5" />
+        <path d={pricePath} fill="none" stroke="#4dabf7" strokeWidth="1.5" />
+        <path d={userPath} fill="none" stroke="#00ff00" strokeWidth="1" strokeDasharray="4 2" />
       </MiniChart>
     );
   };
@@ -163,7 +175,7 @@ export const SchematicFilter = () => {
                   <strong>{res.symbol}</strong>
                   <span style={{ color: '#888', fontSize: '0.8rem' }}>{(res.score * 100).toFixed(1)}%</span>
                 </div>
-                {renderMiniChart(res.prices)}
+                {renderComparisonChart(res.prices, userPattern)}
               </ResultCard>
             ))}
           </ResultGrid>
