@@ -1,10 +1,1 @@
-toolchainManagement {
-    jvm {
-        javaRepositories {
-            repository("foojay") {
-                url = uri("https://api.foojay.io/disco/v3.0/ids/")
-            }
-        }
-    }
-}
 rootProject.name = 'demo'
