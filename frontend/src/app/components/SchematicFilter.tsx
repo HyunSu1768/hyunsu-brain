@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { Button } from './Button';
+import { Button } from '../../components/Button';
 
 const Container = styled.div`
   display: flex;
