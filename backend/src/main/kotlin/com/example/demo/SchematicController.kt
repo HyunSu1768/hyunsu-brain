@@ -33,6 +33,15 @@ class SchematicController(
 
         if (request.points.size < 2) return SchematicFilterResponse(emptyList(), emptyList())
 
+        // Calculate how many candles represent 24 hours for the given interval
+        val candlesIn24Hours = when (request.interval) {
+            "15m" -> 96
+            "1h" -> 24
+            "4h" -> 6
+            "1d" -> 1
+            else -> 24
+        }
+
         // Resample the user's drawing to a consistent length
         val userPattern = comparisonService.resample(request.points, userPatternLength)
         val normalizedUserPattern = comparisonService.normalize(userPattern)
@@ -46,7 +55,8 @@ class SchematicController(
                 if (priceHistory.size < userPatternLength) return@map null
 
                 // Find the best match for the user's pattern in the ticker's history
-                val matchResult = comparisonService.findBestMatch(userPattern, priceHistory)
+                // We restrict the match to end within the last 24 hours
+                val matchResult = comparisonService.findBestMatch(userPattern, priceHistory, candlesIn24Hours)
                 
                 if (matchResult != null) {
                     TickerResult(symbol, matchResult.score, matchResult.matchedSubsequence)

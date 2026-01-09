@@ -44,7 +44,7 @@ class ComparisonService {
         return resampled
     }
 
-    fun findBestMatch(userPattern: List<Double>, priceHistory: List<Kline>): MatchResult? {
+    fun findBestMatch(userPattern: List<Double>, priceHistory: List<Kline>, maxLookback: Int? = null): MatchResult? {
         val userLength = userPattern.size
         val historyLength = priceHistory.size
 
@@ -58,8 +58,15 @@ class ComparisonService {
         var minMse = Double.MAX_VALUE
         var bestMatchSubsequence: List<Kline>? = null
 
-        // Iterate backwards to find the most recent best match
-        for (i in historyLength - userLength downTo 0) {
+        val startSearchIndex = historyLength - userLength
+        val endSearchIndex = if (maxLookback != null) {
+            Math.max(0, historyLength - userLength - maxLookback)
+        } else {
+            0
+        }
+
+        // Iterate backwards to find the most recent best match within the lookback period
+        for (i in startSearchIndex downTo endSearchIndex) {
             val subsequenceCloses = priceHistoryCloses.subList(i, i + userLength)
             val normalizedSubsequence = normalize(subsequenceCloses)
             val mse = calculateMSE(normalizedUserPattern, normalizedSubsequence)
