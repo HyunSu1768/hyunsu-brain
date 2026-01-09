@@ -27,7 +27,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 
 export default function Home() {
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('filter');
 
   useEffect(() => {
     fetch('/api/hello')
