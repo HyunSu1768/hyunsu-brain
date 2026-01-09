@@ -15,8 +15,8 @@ set -m
 
 # --- Backend ---
 echo "Starting Spring Boot backend..."
-# 백엔드 폴더로 이동하여 실행 (백그라운드)
-(cd backend && ./gradlew bootRun) &
+# --console=plain 옵션을 추가하여 "85% EXECUTING" 바가 가독성을 해치지 않게 설정
+(cd backend && ./gradlew bootRun --console=plain) &
 BACKEND_PID=$!
 
 # --- Cleanup Trap ---
