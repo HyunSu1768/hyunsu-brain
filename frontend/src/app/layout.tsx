@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import VibeKanbanProvider from "./components/VibeKanbanProvider";
 import StyledComponentsRegistry from '../lib/StyledComponentsRegistry';
 import { Providers } from "./providers";
 
@@ -28,8 +27,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <VibeKanbanProvider />
-        {children}
         <StyledComponentsRegistry>
           <Providers>{children}</Providers>
         </StyledComponentsRegistry>
