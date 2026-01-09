@@ -3,6 +3,11 @@ package com.example.demo
 import org.springframework.stereotype.Service
 import kotlin.math.pow
 
+data class MatchResult(
+    val score: Double,
+    val matchedSubsequence: List<Double>
+)
+
 @Service
 class ComparisonService {
 
@@ -37,5 +42,37 @@ class ComparisonService {
             }
         }
         return resampled
+    }
+
+    fun findBestMatch(userPattern: List<Double>, priceHistory: List<Double>): MatchResult? {
+        val userLength = userPattern.size
+        val historyLength = priceHistory.size
+
+        if (userLength < 2 || historyLength < userLength) {
+            return null
+        }
+
+        val normalizedUserPattern = normalize(userPattern)
+        var minMse = Double.MAX_VALUE
+        var bestMatchSubsequence: List<Double>? = null
+
+        // Iterate backwards to find the most recent best match
+        for (i in historyLength - userLength downTo 0) {
+            val subsequence = priceHistory.subList(i, i + userLength)
+            val normalizedSubsequence = normalize(subsequence)
+            val mse = calculateMSE(normalizedUserPattern, normalizedSubsequence)
+
+            if (mse < minMse) {
+                minMse = mse
+                bestMatchSubsequence = subsequence
+            }
+        }
+
+        if (bestMatchSubsequence == null) {
+            return null
+        }
+
+        val score = 1.0 - minMse
+        return MatchResult(score, bestMatchSubsequence)
     }
 }

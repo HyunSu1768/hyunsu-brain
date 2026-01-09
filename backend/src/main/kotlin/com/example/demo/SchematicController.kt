@@ -23,27 +23,32 @@ class SchematicController(
 
     @PostMapping("/filter")
     fun filterTickers(@RequestBody request: SchematicFilterRequest): List<TickerResult> {
-        val targetLength = 100
+        val userPatternLength = 100 // The length we resample the user's drawing to
+        val historyLength = 500     // The total price history to search within
+
         if (request.points.size < 2) return emptyList()
 
-        val normalizedUserPoints = comparisonService.normalize(
-            comparisonService.resample(request.points, targetLength)
-        )
+        // Resample the user's drawing to a consistent length
+        val userPattern = comparisonService.resample(request.points, userPatternLength)
 
         val topTickers = binanceService.getTopPerpTickers()
         
         val results = topTickers.parallelStream().map { symbol ->
             try {
-                val prices = binanceService.getKlines(symbol, request.interval, targetLength)
-                if (prices.size < 10) return@map null
+                // Fetch a longer price history for the sliding window search
+                val priceHistory = binanceService.getKlines(symbol, request.interval, historyLength)
+                if (priceHistory.size < userPatternLength) return@map null
+
+                // Find the best match for the user's pattern in the ticker's history
+                val matchResult = comparisonService.findBestMatch(userPattern, priceHistory)
                 
-                // Resample prices to targetLength if needed (Binance might return fewer candles)
-                val resampledPrices = comparisonService.resample(prices, targetLength)
-                val normalizedPrices = comparisonService.normalize(resampledPrices)
-                val mse = comparisonService.calculateMSE(normalizedUserPoints, normalizedPrices)
-                
-                TickerResult(symbol, 1.0 - mse, prices)
+                if (matchResult != null) {
+                    TickerResult(symbol, matchResult.score, matchResult.matchedSubsequence)
+                } else {
+                    null
+                }
             } catch (e: Exception) {
+                // Log the exception in a real application
                 null
             }
         }.filter { it != null }.collect(Collectors.toList())
