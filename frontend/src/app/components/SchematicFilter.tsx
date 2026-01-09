@@ -44,9 +44,15 @@ const ResultCard = styled.div`
   gap: 8px;
 `;
 
+interface MatchResult {
+  symbol: string;
+  score: number;
+  prices: Kline[];
+}
+
 export const SchematicFilter = () => {
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<MatchResult[]>([]);
   const [userPattern, setUserPattern] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [interval, setInterval] = useState('1h');

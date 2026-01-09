@@ -1,6 +1,6 @@
 'use client';
 
-import { createChart, IChartApi, ISeriesApi, UTCTimestamp, CandlestickData, LineData } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, UTCTimestamp, CandlestickData, LineData, CandlestickSeries, LineSeries } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
 
 export interface Kline {
@@ -45,7 +45,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({ data, userPattern }
         },
       });
 
-      const candleSeries = chart.addCandlestickSeries({
+      const candleSeries = chart.addSeries(CandlestickSeries, {
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderDownColor: '#ef5350',
@@ -54,7 +54,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({ data, userPattern }
         wickUpColor: '#26a69a',
       });
 
-      const userPatternSeries = chart.addLineSeries({
+      const userPatternSeries = chart.addSeries(LineSeries, {
         color: '#00ff00',
         lineWidth: 2,
         lineStyle: 2, // Dashed
