@@ -12,7 +12,7 @@
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "vibe-kanban-web-companion": "^0.0.5"
+    "vibe-kanban-web-companion": "^0.0.5",
     "styled-components": "^6.2.0"
   },
   "devDependencies": {
