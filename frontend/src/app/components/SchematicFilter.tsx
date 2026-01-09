@@ -102,13 +102,13 @@ export const SchematicFilter = () => {
 
   const renderMiniChart = (prices: number[]) => {
     if (prices.length < 2) return null;
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const range = max - min || 1;
-    
-    const points = prices.map((p, i) => {
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const yRange = maxPrice - minPrice;
+
+    const points = prices.map((price, i) => {
       const x = (i / (prices.length - 1)) * 180;
-      const y = 80 - ((p - min) / range) * 80;
+      const y = yRange === 0 ? 40 : 80 - ((price - minPrice) / yRange) * 80;
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
 
