@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../components/Button';
+import TradingViewChart, { Kline } from './TradingViewChart';
 
 const Container = styled.div`
   display: flex;
@@ -29,7 +30,7 @@ const Svg = styled.svg`
 
 const ResultGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
 `;
 
@@ -38,21 +39,10 @@ const ResultCard = styled.div`
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
-
-const MiniChart = styled.svg`
-  width: 100%;
-  height: 80px;
-  margin-top: 8px;
-`;
-
-const normalize = (data: number[]): number[] => {
-  if (data.length === 0) return [];
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  if (max === min) return data.map(() => 0.5);
-  return data.map(d => (d - min) / (max - min));
-};
 
 export const SchematicFilter = () => {
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
@@ -106,31 +96,6 @@ export const SchematicFilter = () => {
     return <path d={path} fill="none" stroke="#00ff00" strokeWidth="2" />;
   };
 
-  const renderComparisonChart = (prices: number[], pattern: number[]) => {
-    if (prices.length < 2) return null;
-
-    const normalizedPrices = normalize(prices);
-    
-    const pricePath = normalizedPrices.map((price, i) => {
-      const x = (i / (normalizedPrices.length - 1)) * 180;
-      const y = 80 - price * 80;
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    const userPath = pattern.map((price, i) => {
-        const x = (i / (pattern.length - 1)) * 180;
-        const y = 80 - price * 80;
-        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-
-    return (
-      <MiniChart viewBox="0 0 180 80">
-        <path d={pricePath} fill="none" stroke="#4dabf7" strokeWidth="1.5" />
-        <path d={userPath} fill="none" stroke="#00ff00" strokeWidth="1" strokeDasharray="4 2" />
-      </MiniChart>
-    );
-  };
-
   return (
     <Container>
       <div>
@@ -175,7 +140,7 @@ export const SchematicFilter = () => {
                   <strong>{res.symbol}</strong>
                   <span style={{ color: '#888', fontSize: '0.8rem' }}>{(res.score * 100).toFixed(1)}%</span>
                 </div>
-                {renderComparisonChart(res.prices, userPattern)}
+                <TradingViewChart data={res.prices} userPattern={userPattern} />
               </ResultCard>
             ))}
           </ResultGrid>
