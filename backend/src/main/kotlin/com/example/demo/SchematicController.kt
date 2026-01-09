@@ -11,7 +11,7 @@ data class SchematicFilterRequest(
 data class TickerResult(
     val symbol: String,
     val score: Double,
-    val prices: List<Double>
+    val prices: List<Kline>
 )
 
 data class SchematicFilterResponse(
